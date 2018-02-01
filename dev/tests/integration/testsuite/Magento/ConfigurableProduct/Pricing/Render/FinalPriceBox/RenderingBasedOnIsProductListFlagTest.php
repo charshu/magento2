@@ -83,7 +83,7 @@ class RenderingBasedOnIsProductListFlagTest extends \PHPUnit\Framework\TestCase
         $this->assertGreaterThanOrEqual(
             1,
             \Magento\TestFramework\Helper\Xpath::getElementsCountForXpath(
-                '//*[contains(@class,"normal-price")]',
+                '//*[contains(@class,"special-price")]',
                 $html
             )
         );
@@ -116,9 +116,9 @@ class RenderingBasedOnIsProductListFlagTest extends \PHPUnit\Framework\TestCase
         $html = $this->finalPriceBox->toHtml();
         self::assertContains('5.99', $html);
         $this->assertEquals(
-            1,
+            $count,
             \Magento\TestFramework\Helper\Xpath::getElementsCountForXpath(
-                '//*[contains(@class,"normal-price")]',
+                '//*[contains(@class,"special-price")]',
                 $html
             )
         );
@@ -137,7 +137,7 @@ class RenderingBasedOnIsProductListFlagTest extends \PHPUnit\Framework\TestCase
     public function isProductListDataProvider()
     {
         return [
-            'is_not_product_list' => [false, 1],
+            'is_not_product_list' => [false, true],
             'is_product_list' => [true, 0],
         ];
     }

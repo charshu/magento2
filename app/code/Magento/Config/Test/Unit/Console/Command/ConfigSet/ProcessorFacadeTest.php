@@ -132,8 +132,7 @@ class ProcessorFacadeTest extends \PHPUnit\Framework\TestCase
      */
     public function testProcessWithValidatorException(LocalizedException $exception)
     {
-        $this->expectException(ValidatorException::class);
-        $this->expectExceptionMessage('Some error');
+        $this->expectException(ValidatorException::class, 'Some error');
         $this->scopeValidatorMock->expects($this->once())
             ->method('isValid')
             ->willThrowException($exception);

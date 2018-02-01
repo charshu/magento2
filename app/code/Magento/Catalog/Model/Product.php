@@ -1712,7 +1712,7 @@ class Product extends \Magento\Catalog\Model\AbstractModel implements
      * Get attribute text by its code
      *
      * @param string $attributeCode Code of the attribute
-     * @return string|array|null
+     * @return string
      */
     public function getAttributeText($attributeCode)
     {

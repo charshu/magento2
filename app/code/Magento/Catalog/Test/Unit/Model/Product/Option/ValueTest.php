@@ -164,27 +164,13 @@ class ValueTest extends \PHPUnit\Framework\TestCase
     private function getMockedProduct()
     {
         $mockBuilder = $this->getMockBuilder(\Magento\Catalog\Model\Product::class)
-            ->setMethods(['getPriceInfo', '__wakeup'])
+            ->setMethods(['getFinalPrice', '__wakeup'])
             ->disableOriginalConstructor();
         $mock = $mockBuilder->getMock();
 
-        $priceInfoMock = $this->getMockForAbstractClass(
-            \Magento\Framework\Pricing\PriceInfoInterface::class,
-            [],
-            '',
-            false,
-            false,
-            true,
-            ['getPrice']
-        );
-
-        $priceMock = $this->getMockForAbstractClass(\Magento\Framework\Pricing\Price\PriceInterface::class);
-
-        $priceInfoMock->expects($this->any())->method('getPrice')->willReturn($priceMock);
-
-        $mock->expects($this->any())->method('getPriceInfo')->willReturn($priceInfoMock);
-
-        $priceMock->expects($this->any())->method('getValue')->willReturn(10);
+        $mock->expects($this->any())
+            ->method('getFinalPrice')
+            ->will($this->returnValue(10));
 
         return $mock;
     }

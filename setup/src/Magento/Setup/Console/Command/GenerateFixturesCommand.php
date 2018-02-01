@@ -17,7 +17,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * Command generates fixtures for performance tests
- * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
 class GenerateFixturesCommand extends Command
 {
@@ -84,18 +83,12 @@ class GenerateFixturesCommand extends Command
                 $fixture->printInfo($output);
             }
 
-            /** @var \Magento\Setup\Fixtures\ConfigsApplyFixture $configFixture */
-            $configFixture = $fixtureModel
-                ->getFixtureByName(\Magento\Setup\Fixtures\ConfigsApplyFixture::class);
-            $configFixture && $this->executeFixture($configFixture, $output);
-
             /** @var $config \Magento\Indexer\Model\Config */
             $config = $fixtureModel->getObjectManager()->get(\Magento\Indexer\Model\Config::class);
             $indexerListIds = $config->getIndexers();
             /** @var $indexerRegistry \Magento\Framework\Indexer\IndexerRegistry */
             $indexerRegistry = $fixtureModel->getObjectManager()
                 ->create(\Magento\Framework\Indexer\IndexerRegistry::class);
-
             $indexersState = [];
             foreach ($indexerListIds as $indexerId) {
                 $indexer = $indexerRegistry->get($indexerId['indexer_id']);
@@ -104,7 +97,12 @@ class GenerateFixturesCommand extends Command
             }
 
             foreach ($fixtureModel->getFixtures() as $fixture) {
-                $this->executeFixture($fixture, $output);
+                $output->write('<info>' . $fixture->getActionTitle() . '... </info>');
+                $startTime = microtime(true);
+                $fixture->execute($output);
+                $endTime = microtime(true);
+                $resultTime = $endTime - $startTime;
+                $output->writeln('<info> done in ' . gmdate('H:i:s', $resultTime) . '</info>');
             }
 
             $this->clearChangelog();
@@ -114,11 +112,6 @@ class GenerateFixturesCommand extends Command
                 $indexer = $indexerRegistry->get($indexerId['indexer_id']);
                 $indexer->setScheduled($indexersState[$indexerId['indexer_id']]);
             }
-
-            /** @var \Magento\Setup\Fixtures\IndexersStatesApplyFixture $indexerFixture */
-            $indexerFixture = $fixtureModel
-                ->getFixtureByName(\Magento\Setup\Fixtures\IndexersStatesApplyFixture::class);
-            $indexerFixture && $this->executeFixture($indexerFixture, $output);
 
             if (!$input->getOption(self::SKIP_REINDEX_OPTION)) {
                 $fixtureModel->reindex($output);
@@ -154,15 +147,5 @@ class GenerateFixturesCommand extends Command
                 $resource->getConnection()->truncateTable($changeLogTableName);
             }
         }
-    }
-
-    private function executeFixture(\Magento\Setup\Fixtures\Fixture $fixture, OutputInterface $output)
-    {
-        $output->write('<info>' . $fixture->getActionTitle() . '... </info>');
-        $startTime = microtime(true);
-        $fixture->execute($output);
-        $endTime = microtime(true);
-        $resultTime = $endTime - $startTime;
-        $output->writeln('<info> done in ' . gmdate('H:i:s', $resultTime) . '</info>');
     }
 }

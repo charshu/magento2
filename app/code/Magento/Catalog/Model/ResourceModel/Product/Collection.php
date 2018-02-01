@@ -1092,7 +1092,7 @@ class Collection extends \Magento\Catalog\Model\ResourceModel\Collection\Abstrac
     protected function _getSelectCountSql($select = null, $resetLeftJoins = true)
     {
         $this->_renderFilters();
-        $countSelect = $select === null ? $this->_getClearSelect() : $this->_buildClearSelect($select);
+        $countSelect = is_null($select) ? $this->_getClearSelect() : $this->_buildClearSelect($select);
         $countSelect->columns('COUNT(DISTINCT e.entity_id)');
         if ($resetLeftJoins) {
             $countSelect->resetJoinLeft();
@@ -1435,7 +1435,7 @@ class Collection extends \Magento\Catalog\Model\ResourceModel\Collection\Abstrac
             $ids = $this->_allIdsCache;
         }
 
-        if ($ids === null) {
+        if (is_null($ids)) {
             $ids = $this->getAllIds();
             $this->setAllIdsCache($ids);
         }
@@ -1466,17 +1466,17 @@ class Collection extends \Magento\Catalog\Model\ResourceModel\Collection\Abstrac
     {
         $this->_productLimitationFilters->setUsePriceIndex(true);
 
-        if (!isset($this->_productLimitationFilters['customer_group_id']) && $customerGroupId === null) {
+        if (!isset($this->_productLimitationFilters['customer_group_id']) && is_null($customerGroupId)) {
             $customerGroupId = $this->_customerSession->getCustomerGroupId();
         }
-        if (!isset($this->_productLimitationFilters['website_id']) && $websiteId === null) {
+        if (!isset($this->_productLimitationFilters['website_id']) && is_null($websiteId)) {
             $websiteId = $this->_storeManager->getStore($this->getStoreId())->getWebsiteId();
         }
 
-        if ($customerGroupId !== null) {
+        if (!is_null($customerGroupId)) {
             $this->_productLimitationFilters['customer_group_id'] = $customerGroupId;
         }
-        if ($websiteId !== null) {
+        if (!is_null($websiteId)) {
             $this->_productLimitationFilters['website_id'] = $websiteId;
         }
 
@@ -1670,7 +1670,7 @@ class Collection extends \Magento\Catalog\Model\ResourceModel\Collection\Abstrac
 
             return $this;
         } elseif ($attribute == 'is_saleable') {
-            $this->getSelect()->order("is_salable " . $dir);
+            $this->getSelect()->order("is_saleable " . $dir);
             return $this;
         }
 
@@ -2347,7 +2347,7 @@ class Collection extends \Magento\Catalog\Model\ResourceModel\Collection\Abstrac
      */
     public function getMaxPrice()
     {
-        if ($this->_maxPrice === null) {
+        if (is_null($this->_maxPrice)) {
             $this->_prepareStatisticsData();
         }
 
@@ -2361,7 +2361,7 @@ class Collection extends \Magento\Catalog\Model\ResourceModel\Collection\Abstrac
      */
     public function getMinPrice()
     {
-        if ($this->_minPrice === null) {
+        if (is_null($this->_minPrice)) {
             $this->_prepareStatisticsData();
         }
 
@@ -2375,7 +2375,7 @@ class Collection extends \Magento\Catalog\Model\ResourceModel\Collection\Abstrac
      */
     public function getPriceStandardDeviation()
     {
-        if ($this->_priceStandardDeviation === null) {
+        if (is_null($this->_priceStandardDeviation)) {
             $this->_prepareStatisticsData();
         }
 
@@ -2389,7 +2389,7 @@ class Collection extends \Magento\Catalog\Model\ResourceModel\Collection\Abstrac
      */
     public function getPricesCount()
     {
-        if ($this->_pricesCount === null) {
+        if (is_null($this->_pricesCount)) {
             $this->_prepareStatisticsData();
         }
 

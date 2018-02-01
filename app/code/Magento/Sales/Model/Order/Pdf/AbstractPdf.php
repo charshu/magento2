@@ -804,7 +804,7 @@ abstract class AbstractPdf extends \Magento\Framework\DataObject
             throw new \Magento\Framework\Exception\LocalizedException(__('We found an invalid renderer model.'));
         }
 
-        if ($this->_renderers[$type]['renderer'] === null) {
+        if (is_null($this->_renderers[$type]['renderer'])) {
             $this->_renderers[$type]['renderer'] = $this->_pdfItemsFactory->get($this->_renderers[$type]['model']);
         }
 
@@ -953,7 +953,7 @@ abstract class AbstractPdf extends \Magento\Framework\DataObject
      * feed         int; x position (required)
      * font         string; font style, optional: bold, italic, regular
      * font_file    string; path to font file (optional for use your custom font)
-     * font_size    int; font size (default 10)
+     * font_size    int; font size (default 7)
      * align        string; text align (also see feed parametr), optional left, right
      * height       int;line spacing (default 10)
      *
@@ -1005,8 +1005,24 @@ abstract class AbstractPdf extends \Magento\Framework\DataObject
             foreach ($lines as $line) {
                 $maxHeight = 0;
                 foreach ($line as $column) {
-                    $font = $this->setFont($page, $column);
-                    $fontSize = $column['font_size'];
+                    $fontSize = empty($column['font_size']) ? 10 : $column['font_size'];
+                    if (!empty($column['font_file'])) {
+                        $font = \Zend_Pdf_Font::fontWithPath($column['font_file']);
+                        $page->setFont($font, $fontSize);
+                    } else {
+                        $fontStyle = empty($column['font']) ? 'regular' : $column['font'];
+                        switch ($fontStyle) {
+                            case 'bold':
+                                $font = $this->_setFontBold($page, $fontSize);
+                                break;
+                            case 'italic':
+                                $font = $this->_setFontItalic($page, $fontSize);
+                                break;
+                            default:
+                                $font = $this->_setFontRegular($page, $fontSize);
+                                break;
+                        }
+                    }
 
                     if (!is_array($column['text'])) {
                         $column['text'] = [$column['text']];
@@ -1017,8 +1033,6 @@ abstract class AbstractPdf extends \Magento\Framework\DataObject
                     foreach ($column['text'] as $part) {
                         if ($this->y - $lineSpacing < 15) {
                             $page = $this->newPage($pageSettings);
-                            $font = $this->setFont($page, $column);
-                            $fontSize = $column['font_size'];
                         }
 
                         $feed = $column['feed'];
@@ -1051,43 +1065,5 @@ abstract class AbstractPdf extends \Magento\Framework\DataObject
         }
 
         return $page;
-    }
-
-    /**
-     * Set page font.
-     * 
-     * column array format
-     * font         string; font style, optional: bold, italic, regular
-     * font_file    string; path to font file (optional for use your custom font)
-     * font_size    int; font size (default 10)
-     * 
-     * @param \Zend_Pdf_Page $page
-     * @param array $column
-     * @return \Zend_Pdf_Resource_Font
-     * @throws \Zend_Pdf_Exception
-     */
-    private function setFont($page, &$column)
-    {
-        $fontSize = empty($column['font_size']) ? 10 : $column['font_size'];
-        $column['font_size'] = $fontSize;
-        if (!empty($column['font_file'])) {
-            $font = \Zend_Pdf_Font::fontWithPath($column['font_file']);
-            $page->setFont($font, $fontSize);
-        } else {
-            $fontStyle = empty($column['font']) ? 'regular' : $column['font'];
-            switch ($fontStyle) {
-                case 'bold':
-                    $font = $this->_setFontBold($page, $fontSize);
-                    break;
-                case 'italic':
-                    $font = $this->_setFontItalic($page, $fontSize);
-                    break;
-                default:
-                    $font = $this->_setFontRegular($page, $fontSize);
-                    break;
-            }
-        }
-
-        return $font;
     }
 }

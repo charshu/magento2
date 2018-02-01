@@ -13,30 +13,19 @@ class AbstractTest extends \PHPUnit\Framework\TestCase
     protected $_model;
 
     /**
-     * @var \Magento\TestFramework\ObjectManager
-     */
-    private $objectManager;
-
-    /**
      * On product import abstract class methods level it doesn't matter what product type is using.
      * That is why current tests are using simple product entity type by default
      */
     protected function setUp()
     {
-        $this->objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
-        $params = [$this->objectManager->create(\Magento\CatalogImportExport\Model\Import\Product::class), 'simple'];
+        $objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
+        $params = [$objectManager->create(\Magento\CatalogImportExport\Model\Import\Product::class), 'simple'];
         $this->_model = $this->getMockForAbstractClass(
             \Magento\CatalogImportExport\Model\Import\Product\Type\AbstractType::class,
             [
-                $this->objectManager->get(
-                    \Magento\Eav\Model\ResourceModel\Entity\Attribute\Set\CollectionFactory::class
-                ),
-                $this->objectManager->get(
-                    \Magento\Catalog\Model\ResourceModel\Product\Attribute\CollectionFactory::class
-                ),
-                $this->objectManager->get(
-                    \Magento\Framework\App\ResourceConnection::class
-                ),
+                $objectManager->get(\Magento\Eav\Model\ResourceModel\Entity\Attribute\Set\CollectionFactory::class),
+                $objectManager->get(\Magento\Catalog\Model\ResourceModel\Product\Attribute\CollectionFactory::class),
+                $objectManager->get(\Magento\Framework\App\ResourceConnection::class),
                 $params
             ]
         );
@@ -141,11 +130,6 @@ class AbstractTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * Test cleaning imported attribute data from empty values (note '0' is not empty).
-     *
-     * @magentoDbIsolation enabled
-     * @magentoAppIsolation enabled
-     * @magentoDataFixture Magento/CatalogImportExport/Model/Import/_files/custom_attributes.php
      * @dataProvider clearEmptyDataDataProvider
      */
     public function testClearEmptyData($rowData, $expectedAttributes)
@@ -157,14 +141,8 @@ class AbstractTest extends \PHPUnit\Framework\TestCase
         }
     }
 
-    /**
-     * Data provider for testClearEmptyData.
-     *
-     * @return array
-     */
     public function clearEmptyDataDataProvider()
     {
-        // We use sku attribute to test static attributes.
         return [
             [
                 [
@@ -174,7 +152,6 @@ class AbstractTest extends \PHPUnit\Framework\TestCase
                     'product_type' => 'simple',
                     'name' => 'Simple 01',
                     'price' => 10,
-                    'test_attribute' => '1',
                 ],
                 [
                     'sku' => 'simple1',
@@ -182,49 +159,26 @@ class AbstractTest extends \PHPUnit\Framework\TestCase
                     '_attribute_set' => 'Default',
                     'product_type' => 'simple',
                     'name' => 'Simple 01',
-                    'price' => 10,
-                    'test_attribute' => '1',
+                    'price' => 10
                 ],
             ],
             [
                 [
-                    'sku' => '0',
-                    'store_view_code' => '',
+                    'sku' => '',
+                    'store_view_code' => 'German',
                     '_attribute_set' => 'Default',
-                    'product_type' => 'simple',
-                    'name' => 'Simple 01',
-                    'price' => 10,
-                    'test_attribute' => '0',
+                    'product_type' => '',
+                    'name' => 'Simple 01 German',
+                    'price' => '',
                 ],
                 [
-                    'sku' => '0',
-                    'store_view_code' => '',
+                    'sku' => '',
+                    'store_view_code' => 'German',
                     '_attribute_set' => 'Default',
-                    'product_type' => 'simple',
-                    'name' => 'Simple 01',
-                    'price' => 10,
-                    'test_attribute' => '0',
-                ],
-            ],
-            [
-                [
-                    'sku' => null,
-                    'store_view_code' => '',
-                    '_attribute_set' => 'Default',
-                    'product_type' => 'simple',
-                    'name' => 'Simple 01',
-                    'price' => 10,
-                    'test_attribute' => null,
-                ],
-                [
-                    'sku' => null,
-                    'store_view_code' => '',
-                    '_attribute_set' => 'Default',
-                    'product_type' => 'simple',
-                    'name' => 'Simple 01',
-                    'price' => 10,
-                ],
-            ],
+                    'product_type' => '',
+                    'name' => 'Simple 01 German'
+                ]
+            ]
         ];
     }
 }

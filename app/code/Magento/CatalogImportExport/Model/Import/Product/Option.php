@@ -14,7 +14,6 @@ use Magento\ImportExport\Model\Import\ErrorProcessing\ProcessingErrorAggregatorI
 use Magento\Catalog\Api\Data\ProductInterface;
 use Magento\Catalog\Model\ResourceModel\Product\Option\Value\Collection as ProductOptionValueCollection;
 use Magento\Catalog\Model\ResourceModel\Product\Option\Value\CollectionFactory as ProductOptionValueCollectionFactory;
-use Magento\Store\Model\Store;
 
 /**
  * Entity class which provide possibility to import product custom options
@@ -24,8 +23,6 @@ use Magento\Store\Model\Store;
  * @SuppressWarnings(PHPMD.TooManyFields)
  * @SuppressWarnings(PHPMD.ExcessiveClassComplexity)
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
- * @SuppressWarnings(PHPMD.CyclomaticComplexity)
- * @SuppressWarnings(PHPMD.NPathComplexity)
  * @since 100.0.2
  */
 class Option extends \Magento\ImportExport\Model\Import\Entity\AbstractEntity
@@ -764,7 +761,7 @@ class Option extends \Magento\ImportExport\Model\Import\Entity\AbstractEntity
             ksort($newOptionTitles);
             $existingOptions = $this->_oldCustomOptions[$productId];
             foreach ($existingOptions as $optionId => $optionData) {
-                if ($optionData['type'] == $newOptionData['type'] && $optionData['titles'][0] == $newOptionTitles[0]) {
+                if ($optionData['type'] == $newOptionData['type'] && $optionData['titles'] == $newOptionTitles) {
                     return $optionId;
                 }
             }
@@ -1127,19 +1124,13 @@ class Option extends \Magento\ImportExport\Model\Import\Entity\AbstractEntity
     {
         $result = [
             self::COLUMN_TYPE => $name ? $optionRow['type'] : '',
+            self::COLUMN_IS_REQUIRED => $optionRow['required'],
+            self::COLUMN_ROW_SKU => $optionRow['sku'],
+            self::COLUMN_PREFIX . 'sku' => $optionRow['sku'],
             self::COLUMN_ROW_TITLE => '',
             self::COLUMN_ROW_PRICE => ''
         ];
-        if (isset($optionRow['_custom_option_store'])) {
-            $result[self::COLUMN_STORE] = $optionRow['_custom_option_store'];
-        }
-        if (isset($optionRow['required'])) {
-            $result[self::COLUMN_IS_REQUIRED] = $optionRow['required'];
-        }
-        if (isset($optionRow['sku'])) {
-            $result[self::COLUMN_ROW_SKU] = $optionRow['sku'];
-            $result[self::COLUMN_PREFIX . 'sku'] = $optionRow['sku'];
-        }
+
         if (isset($optionRow['option_title'])) {
             $result[self::COLUMN_ROW_TITLE] = $optionRow['option_title'];
         }
@@ -1184,8 +1175,7 @@ class Option extends \Magento\ImportExport\Model\Import\Entity\AbstractEntity
     }
 
     /**
-     * Import data rows.
-     * Additional store view data (option titles) will be sought in store view specified import file rows
+     * Import data rows
      *
      * @return boolean
      * @SuppressWarnings(PHPMD.CyclomaticComplexity)
@@ -1199,8 +1189,7 @@ class Option extends \Magento\ImportExport\Model\Import\Entity\AbstractEntity
             $this->_tables['catalog_product_option_type_value']
         );
         $prevOptionId = 0;
-        $optionId = null;
-        $valueId = null;
+
         while ($bunch = $this->_dataSourceModel->getNextBunch()) {
             $products = [];
             $options = [];
@@ -1213,14 +1202,11 @@ class Option extends \Magento\ImportExport\Model\Import\Entity\AbstractEntity
             $childCount = [];
 
             foreach ($bunch as $rowNumber => $rowData) {
-                if (isset($optionId, $valueId) && empty($rowData[PRODUCT::COL_STORE_VIEW_CODE])) {
-                    $nextOptionId = $optionId;
-                    $nextValueId = $valueId;
-                }
-                $optionId = $nextOptionId;
-                $valueId = $nextValueId;
+
                 $multiRowData = $this->_getMultiRowFormat($rowData);
+
                 foreach ($multiRowData as $optionData) {
+
                     $combinedData = array_merge($rowData, $optionData);
 
                     if (!$this->isRowAllowedToImport($combinedData, $rowNumber)) {
@@ -1232,7 +1218,7 @@ class Option extends \Magento\ImportExport\Model\Import\Entity\AbstractEntity
                     $optionData = $this->_collectOptionMainData(
                         $combinedData,
                         $prevOptionId,
-                        $optionId,
+                        $nextOptionId,
                         $products,
                         $prices
                     );
@@ -1242,7 +1228,7 @@ class Option extends \Magento\ImportExport\Model\Import\Entity\AbstractEntity
                     $this->_collectOptionTypeData(
                         $combinedData,
                         $prevOptionId,
-                        $valueId,
+                        $nextValueId,
                         $typeValues,
                         $typePrices,
                         $typeTitles,
@@ -1325,12 +1311,15 @@ class Option extends \Magento\ImportExport\Model\Import\Entity\AbstractEntity
         $optionData = null;
 
         if ($this->_rowIsMain) {
-            $optionData = empty($rowData[Product::COL_STORE_VIEW_CODE])
-                ? $this->_getOptionData($rowData, $this->_rowProductId, $nextOptionId, $this->_rowType)
-                : '';
+            $optionData = $this->_getOptionData($rowData, $this->_rowProductId, $nextOptionId, $this->_rowType);
 
-            if (!$this->_isRowHasSpecificType($this->_rowType)
-                && ($priceData = $this->_getPriceData($rowData, $nextOptionId, $this->_rowType))
+            if (!$this->_isRowHasSpecificType(
+                    $this->_rowType
+                ) && ($priceData = $this->_getPriceData(
+                    $rowData,
+                    $nextOptionId,
+                    $this->_rowType
+                ))
             ) {
                 $prices[$nextOptionId] = $priceData;
             }
@@ -1358,7 +1347,6 @@ class Option extends \Magento\ImportExport\Model\Import\Entity\AbstractEntity
      * @param array &$childCount
      * @return void
      * @SuppressWarnings(PHPMD.CyclomaticComplexity)
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     protected function _collectOptionTypeData(
         array $rowData,
@@ -1377,27 +1365,39 @@ class Option extends \Magento\ImportExport\Model\Import\Entity\AbstractEntity
                 $typeValues[$prevOptionId][] = $specificTypeData['value'];
 
                 // ensure default title is set
-                if (!isset($typeTitles[$nextValueId][Store::DEFAULT_STORE_ID])) {
-                    $typeTitles[$nextValueId][Store::DEFAULT_STORE_ID] = $specificTypeData['title'];
+                if (!isset($typeTitles[$nextValueId][\Magento\Store\Model\Store::DEFAULT_STORE_ID])) {
+                    $typeTitles[$nextValueId][\Magento\Store\Model\Store::DEFAULT_STORE_ID] = $specificTypeData['title'];
                 }
 
                 if ($specificTypeData['price']) {
                     if ($this->_isPriceGlobal) {
-                        $typePrices[$nextValueId][Store::DEFAULT_STORE_ID] = $specificTypeData['price'];
+                        $typePrices[$nextValueId][\Magento\Store\Model\Store::DEFAULT_STORE_ID] = $specificTypeData['price'];
                     } else {
                         // ensure default price is set
-                        if (!isset($typePrices[$nextValueId][Store::DEFAULT_STORE_ID])) {
-                            $typePrices[$nextValueId][Store::DEFAULT_STORE_ID] = $specificTypeData['price'];
+                        if (!isset($typePrices[$nextValueId][\Magento\Store\Model\Store::DEFAULT_STORE_ID])) {
+                            $typePrices[$nextValueId][\Magento\Store\Model\Store::DEFAULT_STORE_ID] = $specificTypeData['price'];
                         }
                         $typePrices[$nextValueId][$this->_rowStoreId] = $specificTypeData['price'];
                     }
                 }
+
                 $nextValueId++;
+                if (isset($parentCount[$prevOptionId])) {
+                    $parentCount[$prevOptionId]++;
+                } else {
+                    $parentCount[$prevOptionId] = 1;
+                }
             }
-            $specificTypeData = $this->_getSpecificTypeData($rowData, 0, false);
+
+            if (!isset($childCount[$this->_rowStoreId][$prevOptionId])) {
+                $childCount[$this->_rowStoreId][$prevOptionId] = 0;
+            }
+            $parentValueId = $nextValueId - $parentCount[$prevOptionId] + $childCount[$this->_rowStoreId][$prevOptionId];
+            $specificTypeData = $this->_getSpecificTypeData($rowData, $parentValueId, false);
             //For others stores
             if ($specificTypeData) {
-                $typeTitles[$nextValueId++][$this->_rowStoreId] = $specificTypeData['title'];
+                $typeTitles[$parentValueId][$this->_rowStoreId] = $specificTypeData['title'];
+                $childCount[$this->_rowStoreId][$prevOptionId]++;
             }
         }
     }
@@ -1412,7 +1412,7 @@ class Option extends \Magento\ImportExport\Model\Import\Entity\AbstractEntity
      */
     protected function _collectOptionTitle(array $rowData, $prevOptionId, array &$titles)
     {
-        $defaultStoreId = Store::DEFAULT_STORE_ID;
+        $defaultStoreId = \Magento\Store\Model\Store::DEFAULT_STORE_ID;
         if (!empty($rowData[self::COLUMN_TITLE])) {
             if (!isset($titles[$prevOptionId][$defaultStoreId])) {
                 // ensure default title is set
@@ -1536,7 +1536,7 @@ class Option extends \Magento\ImportExport\Model\Import\Entity\AbstractEntity
             }
             $this->_rowStoreId = $this->_storeCodeToId[$rowData[self::COLUMN_STORE]];
         } else {
-            $this->_rowStoreId = Store::DEFAULT_STORE_ID;
+            $this->_rowStoreId = \Magento\Store\Model\Store::DEFAULT_STORE_ID;
         }
         // Init option type and set param which tell that row is main
         if (!empty($rowData[self::COLUMN_TYPE])) {
@@ -1655,7 +1655,7 @@ class Option extends \Magento\ImportExport\Model\Import\Entity\AbstractEntity
         ) {
             $priceData = [
                 'option_id' => $optionId,
-                'store_id' => Store::DEFAULT_STORE_ID,
+                'store_id' => \Magento\Store\Model\Store::DEFAULT_STORE_ID,
                 'price_type' => 'fixed',
             ];
 

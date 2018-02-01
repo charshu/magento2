@@ -14,7 +14,7 @@ class ConfigsApplyFixture extends Fixture
     /**
      * @var int
      */
-    protected $priority = -1;
+    protected $priority = 0;
 
     /**
      * {@inheritdoc}
@@ -41,13 +41,8 @@ class ConfigsApplyFixture extends Fixture
                 ->setValue($config['value'])
                 ->save();
         }
-        $this->fixtureModel->getObjectManager()
-            ->get(\Magento\Framework\App\CacheInterface::class)
+        $this->fixtureModel->getObjectManager()->get(\Magento\Framework\App\CacheInterface::class)
             ->clean([\Magento\Framework\App\Config::CACHE_TAG]);
-
-        $this->fixtureModel->getObjectManager()
-            ->get(\Magento\Config\App\Config\Type\System::class)
-            ->clean();
     }
 
     /**
